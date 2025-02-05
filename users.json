@@ -1,0 +1,18 @@
+{
+    "player1": {
+      "preferred_username": "Vert",
+      "discord_username": "vertunderscore",
+      "src_username": "Vert",
+      "twitch_username": "Vert_",
+      "challonge_username": "vertmart",
+      "pronouns": "She/They"
+    },
+    "player2": {
+      "preferred_username": "Matthew",
+      "discord_username": "p.1",
+      "src_username": "MatthewGamingLIve",
+      "twitch_username": "matthewgaminglive",
+      "challonge_username": "matthewgaminglive",
+      "pronouns": "He/Him"
+    }
+  }
