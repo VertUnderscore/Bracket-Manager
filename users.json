@@ -4,15 +4,35 @@
       "discord_username": "vertunderscore",
       "src_username": "Vert",
       "twitch_username": "Vert_",
-      "challonge_username": "vertmart",
-      "pronouns": "She/They"
+      "challonge_username": "VertUnderscore",
+      "pronouns": "She/They",
+      "seed": 1
     },
     "player2": {
       "preferred_username": "Matthew",
       "discord_username": "p.1",
-      "src_username": "MatthewGamingLIve",
+      "src_username": "MatthewGamingLive",
       "twitch_username": "matthewgaminglive",
       "challonge_username": "matthewgaminglive",
-      "pronouns": "He/Him"
+      "pronouns": "He/Him",
+      "seed": 2
+    },
+    "player3": {
+      "preferred_username": "Umar",
+      "discord_username": "umari0",
+      "src_username": "Umari0",
+      "twitch_username": "Umari0",
+      "challonge_username": "Umari0",
+      "pronouns": "They/He",
+      "seed": 3
+    },
+    "player4": {
+      "preferred_username": "Storster",
+      "discord_username": "storster",
+      "src_username": "Storster",
+      "twitch_username": "Storster",
+      "challonge_username": "Storster",
+      "pronouns": "She/Her",
+      "seed": 4
     }
   }
