@@ -1,28 +1,23 @@
-import challonge
-from user_info import getUserInfo
+import challonge # type: ignore
 from config import challonge_api_key, challonge_username
 challonge.set_credentials(challonge_username, challonge_api_key)
 tournament = "wijtbuaq" # Put Tournament Name
-partipants = challonge.tournaments.show(tournament + "/participants")
-matches = challonge.tournaments.show(tournament + "/matches")
 
+def getParticipants(): #makes code look nicer when calling outside of this file
+    return challonge.tournaments.show(tournament + "/participants") 
 
 def getTournamentNames():
+    partipants = getParticipants()
     returnArray = []
-    for x in partipants:
-        returnArray.append(x["name"]) #get challonge names
+    for partipant in partipants:
+        returnArray.append(partipant["name"]) #get challonge names
     return returnArray
 
 def getCurrentMatches(round):
+    matches = challonge.tournaments.show(tournament + "/matches")
     currentMatches = []
     for match in matches:
-        if (match["round"] == round) and (match[]):
-            
+        if ((match["round"] == round) and (match["player1_id"] != None) and (match["player2_id"] != None)):
+            currentMatches.append(match)
     
-
-if __name__ == "__main__":
-    user_info = getUserInfo()
-    tournament_participants = getTournamentNames()
-    
-    for partipant in partipants:
-        print(partipant["id"])
+    return currentMatches
