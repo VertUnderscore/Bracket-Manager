@@ -17,12 +17,9 @@ class DiscordMatch:
             print(f"Current Participant: {participant}")
             if not player1Found and participant["id"] == self.match["player1_id"]:
                 print(f"We Found A Match For Player 1! {participant["name"]}")
-                print(participant)
                 for user in self.allInfo:
                     if participant["name"].lower() == user["challonge_username"].lower():
                         self.player1 = user
-                        print('LOOK AT THIS LINE!!!')
-                        print(self.player1)
                         break
 
                 player1Found = True
@@ -39,10 +36,25 @@ class DiscordMatch:
                 continue
         
     def initialMessage(self):
-        return f"Hello <@{self.player1["discord_id"]}> and <@{self.player2["discord_id"]}> \nWelcome to Round {self.match["round"]}! Use this channel to schedule your matches!\n "
-        
+        #Since there will be a lot of info, I will be doing this line by line and actually making this a function. I get this is slightly slower, but it makes the code more readable so I don't care. That's what python is for and this is a stupid discord bot anyways.
+        returnString = ""
+        returnString += f"Hello <@{self.player1["discord_id"]}> and <@{self.player2["discord_id"]}>\n"
+        returnString += f"Welcome to Round {self.match["round"]}! Use this channel to schedule your matches!\n\n"
+        returnString += f"{self.player1["preferred_username"]}'s Info For Restreamers:\nTwitch: https://twitch.tv/{self.player1["twitch_username"]}"
+        returnString += f", Pronouns: ({self.player1["pronouns"]})\n\n" if (self.player1["pronouns"] != "") else "\n\n" 
+        returnString += f"{self.player2["preferred_username"]}'s Info For Restreamers:\nTwitch: https://twitch.tv/{self.player2["twitch_username"]}"
+        returnString += f", Pronouns: ({self.player2["pronouns"]})\n\n" if (self.player2["pronouns"] != "") else "\n" 
+
+        return returnString        
+    
     def channel_name(self):
         return f"{self.player1["preferred_username"].lower()}-vs-{self.player2["preferred_username"].lower()}"
+    
+    def getDiscordIDs(self):
+        returnArray = []
+        returnArray.append(self.player1["discord_id"])
+        returnArray.append(self.player2["discord_id"])
+        return returnArray
 
 if __name__ == "__main__":
     matches = challonge_integration.getCurrentMatches(1)

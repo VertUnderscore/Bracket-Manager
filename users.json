@@ -12,17 +12,17 @@
     "player2": {
       "preferred_username": "Matthew",
       "discord_username": "p.1",
-      "discord_id": "82996677639671808",
+      "discord_id": 82996677639671808,
       "src_username": "MatthewGamingLive",
       "twitch_username": "matthewgaminglive",
       "challonge_username": "matthewgaminglive",
-      "pronouns": "He/Him",
+      "pronouns": "",
       "seed": 2
     },
     "player3": {
       "preferred_username": "Umar",
       "discord_username": "umari0",
-      "discord_id": "72804650209783808",
+      "discord_id": 72804650209783808,
       "src_username": "Umari0",
       "twitch_username": "Umari0",
       "challonge_username": "Umari0",
@@ -32,7 +32,7 @@
     "player4": {
       "preferred_username": "Storster",
       "discord_username": "storster",
-      "discord_id": "82980833702445056",
+      "discord_id": 82980833702445056,
       "src_username": "Storster",
       "twitch_username": "Storster",
       "challonge_username": "Storster",
