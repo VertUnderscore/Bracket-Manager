@@ -7,22 +7,19 @@ from user_info import getUserInfo
 from config import bot_token, guild_id # bot_token variable
 from typing import Literal, Optional
 from timezone_map import timezone_map
+from datetime import datetime, timedelta
 
 all_users = getUserInfo()
 
 
 class MyClient(commands.Bot):
-    def __init__(self, *, intents: discord.Intents.all()):
+    def __init__(self, *, intents: discord.Intents):
         super().__init__("$", intents=intents)
         self.guild = self.get_guild(guild_id)  
+        self.owner_id = 180069278387535873
 
-    async def on_ready(self):
+    async def on_ready(self):        
         print(f'Logged on as {self.user}!')
-        try:
-            synced = await self.tree.sync(guild=self.guild)
-            print(f"Synced {len(synced)} commands to the guild")
-        except Exception as e:
-            print(f"Error: {e}")
 
     async def on_message(self, message):
         print(f'Message from {message.author}: {message.content}')
@@ -59,12 +56,43 @@ async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello, world!")
 
 @client.tree.command(name="schedule_match", description="Use this command in your assigned match channel to schedule a match!")
+@discord.app_commands.describe(date='Enter the date in MM/DD/YYYY Format', time="Enter the time in either 12 hour format or 24 Hour Format", timezone="Enter your local timezone.")
 async def schedule_match(interaction: discord.Interaction, date : str, time : str, timezone: str):
-    await interaction.response.send_message("Test")
+    # Try parsing time in both 12-hour and 24-hour formats
+    time_formats = ["%I:%M %p", "%H:%M"]  # 12-hour and 24-hour formats
+    dt_obj = None
+    for time_format in time_formats:
+        try:
+            dt_obj = datetime.strptime(f"{date} {time}", f"%m/%d/%Y {time_format}")
+            break
+        except ValueError:
+            continue
+
+    if not dt_obj:
+        await interaction.response.send_message("Invalid date or time format. Use 'MM/DD/YYYY' and 'H:MM AM/PM' or 'HH:MM'.", ephemeral=True)
+        return
+
+#Sync Command
+@client.tree.command(name="sync", description="Sync Command")
+async def sync(interaction: discord.Interaction):
+    is_owner = await client.is_owner(interaction.user)
+    if not is_owner:
+        await interaction.response.send_message("You cannot run this command.", ephemeral=True)
+        return
+
+    print("Attempting to sync")
+    try:
+        synced = await client.tree.sync(guild=client.guild)
+        print(f"Synced {len(synced)} commands to the guild")
+        await interaction.response.send_message("Success!.", ephemeral=True)
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+
 
 def main():    
     client.run(bot_token)
-
 
 if __name__ == "__main__":
     main()
