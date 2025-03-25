@@ -11,6 +11,28 @@ from config import BOT_TOKEN, GUILD_ID, OWNER_ID
 from typing import Literal, Optional
 from timezone_map import timezone_map
 from datetime import datetime, timedelta
+import threading
+import time
+
+current_matches = {} # This will be updated periodically
+async def listenerForMatches():
+    global current_matches
+    global client
+    while True:
+        print("Running")
+        t_current_matches = challonge_integration.getCurrentMatches()
+        if (current_matches == t_current_matches):
+            print("Match Is Same")
+            pass # base case, no need to do things
+        else:
+            print("Match Is Different")
+            # Get match IDs or unique keys from the dictionaries
+            current_ids = {match['id'] for match in current_matches}
+            new_matches = [match for match in t_current_matches if match['id'] not in current_ids]
+            current_matches = t_current_matches
+            for x in new_matches:
+                await client.discordRoundCreation(x["round"])
+        await asyncio.sleep(60) # Only Pings Once Every 5 Minutes
 
 def getUserInfo():
     returnArray = []
@@ -23,7 +45,7 @@ def getUserInfo():
 
     return returnArray
 
-ALL_USERS = getUserInfo() # all users array
+ALL_USERS = getUserInfo() # all user info array
 
 class TournamentBot(commands.Bot):
     def __init__(self, *, intents: discord.Intents):
@@ -33,15 +55,20 @@ class TournamentBot(commands.Bot):
 
     async def on_ready(self):        
         print(f'Logged on as {self.user}!')
+        asyncio.create_task(listenerForMatches())
+
 
     async def on_message(self, message):
         print(f'Message from {message.author}: {message.content}')
 
-    async def discordRoundCreation(self, round : str):
-
-        CATEGORY_NAME = f"Round {round}" 
+    async def discordRoundCreation(self, round):
+        self.guild = self.get_guild(GUILD_ID)  #DRY except I have to because spaghetti code :(
+        CATEGORY_NAME = challonge_integration.getRoundName(round)
         category = discord.utils.get(self.get_all_channels(), name = CATEGORY_NAME) # category type in discord.py
-        for match in challonge_integration.getCurrentMatches(round):
+        if category == None:
+            category = await self.guild.create_category_channel(CATEGORY_NAME)
+        print(category)
+        for match in current_matches:
             currentMatch = match_to_discord.DiscordMatch(match)
             channel_name = currentMatch.channel_name()
             if discord.utils.get(self.get_all_channels(), name = channel_name) != None:
