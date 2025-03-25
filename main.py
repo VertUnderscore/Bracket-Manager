@@ -113,12 +113,9 @@ def get_players_from_channel(channel_name):
             return None, None
 
 # Helper Functions for confirm_match and update_match
-### 🧩 **Helper Functions:**
-
 def is_valid_channel(channel_name):
     """Check if channel name is valid (contains '-vs-')."""
     return "-vs-" in channel_name
-
 
 def get_players_from_channel(channel_name):
     """Extract player names from the channel name."""
@@ -138,7 +135,6 @@ def get_players_from_channel(channel_name):
     except ValueError:
         return None, None
 
-
 def can_run_command(user, player1, player2):
     """Check if the user can run the command (either a player or a Tournament Admin)."""
     is_tourney_admin = any(role.name == "Tournament Admin" for role in user.roles)
@@ -148,16 +144,13 @@ def can_run_command(user, player1, player2):
         or user.id == player2["discord_id"]
     )
 
-
 def generate_event_name(player1, player2):
     """Generate the event name."""
     return f"{player1['preferred_username']} ({player1['seed']}) vs {player2['preferred_username']} ({player2['seed']})"
 
-
 def event_exists(scheduled_events, event_name):
     """Check if an event with the given name already exists."""
     return any(event.name == event_name for event in scheduled_events)
-
 
 def parse_datetime(date_str, time_str):
     """Parse date and time string in both 12-hour and 24-hour formats."""
@@ -169,7 +162,6 @@ def parse_datetime(date_str, time_str):
         except ValueError:
             continue
     return None
-
 
 def get_timezone(timezone):
     """Get the timezone object from abbreviation or UTC offset."""
@@ -187,7 +179,6 @@ def get_timezone(timezone):
 
     return None
 
-
 async def create_event(guild, event_name, start_time, end_time, description="No restreamers or commentators have claimed this event"):
     """Create the scheduled event."""
     await guild.create_scheduled_event(
@@ -199,7 +190,6 @@ async def create_event(guild, event_name, start_time, end_time, description="No 
         privacy_level=discord.PrivacyLevel.guild_only,
         entity_type=discord.EntityType.external,
     )
-    
 
 @client.tree.command(name="confirm_match", description="Use this command in your assigned match channel to confirm a match!")
 @discord.app_commands.describe(date='Enter the date in MM/DD/YYYY Format', time="Enter the time in either 12 hour format or 24 hour format", timezone="Enter your local timezone.")
