@@ -67,8 +67,11 @@ class TournamentBot(commands.Bot):
         category = discord.utils.get(self.get_all_channels(), name = CATEGORY_NAME) # category type in discord.py
         if category == None:
             category = await self.guild.create_category_channel(CATEGORY_NAME)
+
         print(category)
         for match in current_matches:
+            if match["round"] != round:
+                continue
             currentMatch = match_to_discord.DiscordMatch(match)
             channel_name = currentMatch.channel_name()
             if discord.utils.get(self.get_all_channels(), name = channel_name) != None:
@@ -83,7 +86,7 @@ class TournamentBot(commands.Bot):
                     if user == None:
                         print("USER IS NONE FOR SOME REASON")
                     else:
-                        await currentChannel.set_permissions(self.guild.get_member(id), view_channel=True)
+                        await currentChannel.set_permissions(user, view_channel=True)
                 await currentChannel.send(currentMatch.initialMessage())
 
 intents = discord.Intents.default()

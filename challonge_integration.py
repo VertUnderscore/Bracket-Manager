@@ -11,9 +11,9 @@ def getRoundName(round):
     if (round < 0):
         return f"Loser's Round {abs(round)}"
     elif (round == 3): #change number to the actual last round, this is the finals.
-        return "The Final Round"
+        return "Finals"
     elif (round == 2): #change to second last round. Semifinals
-        return "The Semifinals Round"
+        return "Semifinals"
     else:
         return f"Round {round}"
 
@@ -32,11 +32,4 @@ def getCurrentMatches():
             currentMatches.append(match)
     
     return currentMatches
-
-current_matches = getCurrentMatches() # This will be updated periodically
-
-def listenerForMatches():
-    global current_matches
-    while True:
-        time.sleep(300) # Only Pings Once Every 5 Minutes
 

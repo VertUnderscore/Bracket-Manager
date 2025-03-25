@@ -37,13 +37,17 @@ class DiscordMatch:
         
     def initialMessage(self):
         #Since there will be a lot of info, I will be doing this line by line and actually making this a function. I get this is slightly slower, but it makes the code more readable so I don't care. That's what python is for and this is a stupid discord bot anyways.
+        round = challonge_integration.getRoundName(self.match["round"])
         returnString = ""
         returnString += f"Hello <@{self.player1["discord_id"]}> and <@{self.player2["discord_id"]}>\n"
-        returnString += f"Welcome to {challonge_integration.getRoundName(self.match["round"])}! Use this channel to schedule your matches!\n\n"
+        returnString += f"Welcome to the {challonge_integration.getRoundName(self.match["round"])}! Use this channel to schedule your matches!\n\n" if ((round.startswith("F")) or (round.startswith("S"))) else f"Welcome to {challonge_integration.getRoundName(self.match["round"])}! Use this channel to schedule your matches!\n\n"
         returnString += f"{self.player1["preferred_username"]}'s Info For Restreamers:\nTwitch: https://twitch.tv/{self.player1["twitch_username"]}"
         returnString += f", Pronouns: ({self.player1["pronouns"]})\n\n" if (self.player1["pronouns"] != "") else "\n\n" 
         returnString += f"{self.player2["preferred_username"]}'s Info For Restreamers:\nTwitch: https://twitch.tv/{self.player2["twitch_username"]}"
-        returnString += f", Pronouns: ({self.player2["pronouns"]})\n\n" if (self.player2["pronouns"] != "") else "\n" 
+        returnString += f", Pronouns: ({self.player2["pronouns"]})\n\n" if (self.player2["pronouns"] != "") else "\n\n" 
+        returnString += "Use this channel to schedule your match with your opponent! Once a time is selected between you two, then you can use /confirm_match to add it to the calendar!\n"
+        returnString += "If needed, you can always /update_match to change the time!\n"
+        returnString += "Restreamers or commentators can use /claim to add that they will be restreaming or commentating the match!\n"
 
         return returnString        
     
