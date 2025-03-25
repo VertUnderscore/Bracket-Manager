@@ -1,6 +1,6 @@
 import challonge # type: ignore
-from config import challonge_api_key, challonge_username
-challonge.set_credentials(challonge_username, challonge_api_key)
+from config import CHALLONGE_API_KEY, CHALLONGE_USERNAME
+challonge.set_credentials(CHALLONGE_USERNAME, CHALLONGE_API_KEY)
 tournament = "wijtbuaq" # Put Tournament Name
 
 def getParticipants(): #makes code look nicer when calling outside of this file
