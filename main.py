@@ -1,4 +1,5 @@
 import discord # type: ignore #discord.py
+import discord.utils
 from discord.ext import commands
 import asyncio #async await functions
 import json
@@ -15,17 +16,18 @@ import threading
 import time
 
 current_matches = {} # This will be updated periodically
+
 async def listenerForMatches():
     global current_matches
     global client
     while True:
-        print("Running")
+        #print("Running")
         t_current_matches = challonge_integration.getCurrentMatches()
         if (current_matches == t_current_matches):
-            print("Match Is Same")
+            #print("Match Is Same")
             pass # base case, no need to do things
         else:
-            print("Match Is Different")
+            print("New Match ")
             # Get match IDs or unique keys from the dictionaries
             current_ids = {match['id'] for match in current_matches}
             new_matches = [match for match in t_current_matches if match['id'] not in current_ids]
@@ -47,7 +49,7 @@ def getUserInfo():
 
 ALL_USERS = getUserInfo() # all user info array
 
-class TournamentBot(commands.Bot):
+class BracketManager(commands.Bot):
     def __init__(self, *, intents: discord.Intents):
         super().__init__("$", intents=intents)
         self.guild = self.get_guild(GUILD_ID)  
@@ -68,7 +70,7 @@ class TournamentBot(commands.Bot):
         if category == None:
             category = await self.guild.create_category_channel(CATEGORY_NAME)
 
-        print(category)
+        #print(category)
         for match in current_matches:
             if match["round"] != round:
                 continue
@@ -81,8 +83,8 @@ class TournamentBot(commands.Bot):
                 currentChannel = discord.utils.get(self.get_all_channels(), name = channel_name)
                 for id in currentMatch.getDiscordIDs():
                     user = self.guild.get_member(id)
-                    print(id)
-                    print(user)
+                    #print(id)
+                    #print(user)
                     if user == None:
                         print("USER IS NONE FOR SOME REASON")
                     else:
@@ -92,9 +94,9 @@ class TournamentBot(commands.Bot):
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
-client = TournamentBot(intents=intents)
+client = BracketManager(intents=intents)
 
-#Helper Function for confirm_match and update_match
+#Helper Function for confirm_match
 def get_players_from_channel(channel_name):
         try:
             tplayer1, tplayer2 = channel_name.split("-vs-", 1)
@@ -112,7 +114,7 @@ def get_players_from_channel(channel_name):
         except ValueError:
             return None, None
 
-# Helper Functions for confirm_match and update_match
+# Helper Functions for confirm_match
 def is_valid_channel(channel_name):
     """Check if channel name is valid (contains '-vs-')."""
     return "-vs-" in channel_name
@@ -191,11 +193,79 @@ async def create_event(guild, event_name, start_time, end_time, description="No 
         entity_type=discord.EntityType.external,
     )
 
-@client.tree.command(name="confirm_match", description="Use this command in your assigned match channel to confirm a match!")
+def parse_event_status(event_description):
+    no_claim_pattern = r"No restreamers or commentators have claimed this event"
+    claim_pattern = (
+        r"Restreamers:\s*(?P<restreamers>[\w\s,]+)\s*"
+        r"Commentators:\s*(?P<commentators>[\w\s,]+)"
+    )
+
+    # Check for no claims
+    if re.search(no_claim_pattern, event_description):
+        return {"restreamers": [], "commentators": []}
+
+    # Check for claimed restreamers/commentators
+    claim_match = re.search(claim_pattern, event_description)
+    if claim_match:
+        restreamers = [name.strip() for name in claim_match.group("restreamers").split(",") if name.strip()]
+        commentators = [name.strip() for name in claim_match.group("commentators").split(",") if name.strip()]
+        return {"restreamers": restreamers, "commentators": commentators}
+
+    # Return None if neither pattern matches
+    return None
+
+async def update_event_description(event : discord.ScheduledEvent, newDescripton, username, role):
+    await event.edit(description=newDescripton)
+
+
+
+async def update_event_time(guild, event_name, start_time, end_time, description="No restreamers or commentators have claimed this event"):
+    #Update the scheduled event
+    allEvents = await guild.fetch_scheduled_events()
+    currentEvent = discord.utils.get(allEvents, name=event_name)
+
+    await currentEvent.edit(
+        name=event_name,
+        start_time=start_time,
+        end_time=end_time,
+        description=description,
+        location="https://twitch.tv/supermarioworld",
+        privacy_level=discord.PrivacyLevel.guild_only,
+        entity_type=discord.EntityType.external,
+    )
+
+@client.tree.command(name="claim_restreamer")
+async def confirm_match(interaction: discord.Interaction, role: str):
+    data = parse_event_status(event_description)
+    
+    if data is None:
+        raise ValueError("Invalid event description format")
+
+    role_key = role.lower()
+    if role_key not in ["restreamers", "commentators"]:
+        raise ValueError("Role must be either 'restreamers' or 'commentators'")
+
+    # Add username if it's not already in the list
+    if username not in data[role_key]:
+        data[role_key].append(username)
+
+    # Rebuild the event description
+    if not data["restreamers"] and not data["commentators"]:
+        return "No restreamers or commentators have claimed this event"
+    
+    restreamers_str = ", ".join(data["restreamers"]) or "None"
+    commentators_str = ", ".join(data["commentators"]) or "None"
+    
+    return f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}"
+
+
+@client.tree.command(name="confirm_match", description="Use this command in your designated match channel to add or update a match in the schedule!")
 @discord.app_commands.describe(date='Enter the date in MM/DD/YYYY Format', time="Enter the time in either 12 hour format or 24 hour format", timezone="Enter your local timezone.")
 async def confirm_match(interaction: discord.Interaction, date: str, time: str, timezone: str):
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    
     if not is_valid_channel(interaction.channel.name):
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "Error: This command can only be used in private match scheduling channels.",
             ephemeral=True,
         )
@@ -204,7 +274,7 @@ async def confirm_match(interaction: discord.Interaction, date: str, time: str, 
     player1, player2 = get_players_from_channel(interaction.channel.name)
 
     if not player1 or not player2:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "Error: Could not find player information. Check the channel name.",
             ephemeral=True,
         )
@@ -214,26 +284,18 @@ async def confirm_match(interaction: discord.Interaction, date: str, time: str, 
 
     # Check if user is authorized to run the command
     if not can_run_command(user_running_command, player1, player2):
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "You do not have permission to run this command.", ephemeral=True
         )
         return
 
-    # Generate event name and check if it already exists
     event_name = generate_event_name(player1, player2)
-
-    if event_exists(interaction.guild.scheduled_events, event_name):
-        await interaction.response.send_message(
-            f"Error: An event with the name '{event_name}' already exists. Please use /update_match_time or ping a tournament admin.",
-            ephemeral=True,
-        )
-        return
 
     # Parse and validate datetime
     dt_obj = parse_datetime(date, time)
 
     if not dt_obj:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "Invalid date or time format. Use 'MM/DD/YYYY' and 'H:MM AM/PM' or 'HH:MM'.",
             ephemeral=True,
         )
@@ -243,7 +305,7 @@ async def confirm_match(interaction: discord.Interaction, date: str, time: str, 
     timezone_obj = get_timezone(timezone)
 
     if not timezone_obj:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"Unknown or unsupported timezone abbreviation: {timezone}",
             ephemeral=True,
         )
@@ -253,11 +315,18 @@ async def confirm_match(interaction: discord.Interaction, date: str, time: str, 
     utc_dt = localized_dt.astimezone(pytz.UTC)
     end_dt = utc_dt + timedelta(hours=1)
 
-    # Create event
-    await create_event(interaction.guild, event_name, utc_dt, end_dt)
-    await interaction.response.send_message(
-        "Success! I have created an event for you!", ephemeral=True
-    )
+    # Create or update event
+    if event_exists(interaction.guild.scheduled_events, event_name):
+        await update_event(interaction.guild, event_name, utc_dt, end_dt)
+        await interaction.followup.send(
+            f"Success! I have updated the schedule for you!.",
+            ephemeral=True,
+        )
+    else:
+        await create_event(interaction.guild, event_name, utc_dt, end_dt)
+        await interaction.followup.send(
+            "Success! I have created an event for you!", ephemeral=True
+        )
 
 #Sync Command
 @client.tree.command(name="sync", description="Sync Command")

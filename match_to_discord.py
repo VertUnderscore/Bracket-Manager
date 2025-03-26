@@ -14,9 +14,9 @@ class DiscordMatch:
             if player1Found and player2Found:
                 break
             
-            print(f"Current Participant: {participant}")
+            #print(f"Current Participant: {participant}")
             if not player1Found and participant["id"] == self.match["player1_id"]:
-                print(f"We Found A Match For Player 1! {participant["name"]}")
+                #print(f"We Found A Match For Player 1! {participant["name"]}")
                 for user in self.allInfo:
                     if participant["name"].lower() == user["challonge_username"].lower():
                         self.player1 = user
@@ -26,7 +26,7 @@ class DiscordMatch:
                 continue
 
             if not player2Found and participant["id"] == self.match["player2_id"]:
-                print(f"We Found A Match For Player 2! {participant["name"]}")
+                #print(f"We Found A Match For Player 2! {participant["name"]}")
                 for user in self.allInfo:
                     if participant["name"].lower() == user["challonge_username"].lower():
                         self.player2 = user
