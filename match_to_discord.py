@@ -1,9 +1,9 @@
-import user_info
+from helper_functions import getUserInfo
 import challonge_integration
 
 class DiscordMatch:
     def __init__(self, match):
-        self.allInfo = user_info.getUserInfo()
+        self.allInfo = getUserInfo()
         self.match = match
         self.player1 = None
         self.player2 = None

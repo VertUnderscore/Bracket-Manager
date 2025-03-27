@@ -10,7 +10,7 @@ import re
 from config import BOT_TOKEN, GUILD_ID, OWNER_ID
 from typing import Literal, Optional
 from timezone_map import timezone_map
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from helper_functions import *
 
 current_matches = {} # This will be updated periodically
@@ -32,7 +32,7 @@ async def listenerForMatches():
             current_matches = t_current_matches
             for x in new_matches:
                 await client.discordRoundCreation(x["round"])
-        await asyncio.sleep(60) # Only Pings Once Every 5 Minutes
+        await asyncio.sleep(60) # Only Pings Once Every Minute
 
 def getUserInfo():
     returnArray = []
