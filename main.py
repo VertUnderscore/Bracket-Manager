@@ -11,9 +11,8 @@ from user_info import getUserInfo
 from config import BOT_TOKEN, GUILD_ID, OWNER_ID
 from typing import Literal, Optional
 from timezone_map import timezone_map
-from datetime import datetime, timedelta
-import threading
-import time
+from datetime import datetime, timedelta, timezone
+import helper_functions
 
 current_matches = {} # This will be updated periodically
 
@@ -113,6 +112,14 @@ def get_players_from_channel(channel_name):
             return player1, player2
         except ValueError:
             return None, None
+        
+def get_preferred_name(id):
+    try:
+        for user in ALL_USERS:
+            if id == user["discord_id"]:
+                return user["preferred_username"]
+    except ValueError:
+        return None
 
 # Helper Functions for confirm_match
 def is_valid_channel(channel_name):
@@ -145,6 +152,12 @@ def can_run_command(user, player1, player2):
         or user.id == player1["discord_id"]
         or user.id == player2["discord_id"]
     )
+
+def can_run_command_RC(user):
+    is_commentator = any(role.name == "commentator" for role in user.roles)
+    is_restreamer = any(role.name == "restreamer" for role in user.roles)
+    is_tourney_admin = any(role.name == "Tournament Admin" for role in user.roles)
+    return {is_commentator or is_restreamer or is_tourney_admin}
 
 def generate_event_name(player1, player2):
     """Generate the event name."""
@@ -196,30 +209,26 @@ async def create_event(guild, event_name, start_time, end_time, description="No 
 def parse_event_status(event_description):
     no_claim_pattern = r"No restreamers or commentators have claimed this event"
     claim_pattern = (
-        r"Restreamers:\s*(?P<restreamers>[\w\s,]+)\s*"
-        r"Commentators:\s*(?P<commentators>[\w\s,]+)"
+        r"Restreamers:\s*(?P<restreamer>[\w\s,]+)\s*"
+        r"Commentators:\s*(?P<commentator>[\w\s,]+)"
     )
 
     # Check for no claims
     if re.search(no_claim_pattern, event_description):
-        return {"restreamers": [], "commentators": []}
+        return {"restreamer": [], "commentator": []}
 
     # Check for claimed restreamers/commentators
     claim_match = re.search(claim_pattern, event_description)
     if claim_match:
-        restreamers = [name.strip() for name in claim_match.group("restreamers").split(",") if name.strip()]
-        commentators = [name.strip() for name in claim_match.group("commentators").split(",") if name.strip()]
-        return {"restreamers": restreamers, "commentators": commentators}
+        restreamers = [name.strip() for name in claim_match.group("restreamer").split(",") if name.strip() and name.strip().lower() != "none"]
+        commentators = [name.strip() for name in claim_match.group("commentator").split(",") if name.strip() and name.strip().lower() != "none"]
+        return {"restreamer": restreamers, "commentator": commentators}
 
     # Return None if neither pattern matches
     return None
 
-async def update_event_description(event : discord.ScheduledEvent, newDescripton, username, role):
-    await event.edit(description=newDescripton)
 
-
-
-async def update_event_time(guild, event_name, start_time, end_time, description="No restreamers or commentators have claimed this event"):
+async def update_event(guild, event_name, start_time, end_time, description="No restreamers or commentators have claimed this event"):
     #Update the scheduled event
     allEvents = await guild.fetch_scheduled_events()
     currentEvent = discord.utils.get(allEvents, name=event_name)
@@ -234,99 +243,163 @@ async def update_event_time(guild, event_name, start_time, end_time, description
         entity_type=discord.EntityType.external,
     )
 
-@client.tree.command(name="claim_restreamer")
-async def confirm_match(interaction: discord.Interaction, role: str):
-    data = parse_event_status(event_description)
-    
-    if data is None:
-        raise ValueError("Invalid event description format")
+@client.tree.command(name="claim", description="Use this command if you're a restreamer or commentator to add yourself to the schedule")
+@discord.app_commands.describe(role="Enter either 'restreamer' or 'commentator'")
+async def claim(interaction: discord.Interaction, role: str):
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    try:
+        if not can_run_command_RC(interaction.user):
+            await interaction.followup.send(
+                "Error: You do not have permission to run this command.",
+                ephemeral=True,
+            )
 
-    role_key = role.lower()
-    if role_key not in ["restreamers", "commentators"]:
-        raise ValueError("Role must be either 'restreamers' or 'commentators'")
+        if not is_valid_channel(interaction.channel.name):
+            await interaction.followup.send(
+                "Error: This command can only be used in private match scheduling channels.",
+                ephemeral=True,
+            )
+            return
 
-    # Add username if it's not already in the list
-    if username not in data[role_key]:
-        data[role_key].append(username)
+        player1, player2 = get_players_from_channel(interaction.channel.name)
 
-    # Rebuild the event description
-    if not data["restreamers"] and not data["commentators"]:
-        return "No restreamers or commentators have claimed this event"
-    
-    restreamers_str = ", ".join(data["restreamers"]) or "None"
-    commentators_str = ", ".join(data["commentators"]) or "None"
-    
-    return f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}"
+        if not player1 or not player2:
+            await interaction.followup.send(
+                "Error: Could not find player information. Check the channel name.",
+                ephemeral=True,
+            )
+            return
+
+        user_running_command = interaction.user
+
+        # Check if user is authorized to run the command REWRITE THIS
+        if not can_run_command(user_running_command, player1, player2):
+            await interaction.followup.send(
+                "You do not have permission to run this command.", ephemeral=True
+            )
+            return
+
+        event_name = generate_event_name(player1, player2)
+        allEvents = await interaction.guild.fetch_scheduled_events()
+        currentEvent = discord.utils.get(allEvents, name=event_name)
+        event_description = currentEvent.description
+        user_id = interaction.user.id
+        username = get_preferred_name(user_id)
+
+        data = parse_event_status(event_description)
+        
+        if data is None:
+            raise ValueError("Invalid event description format")
+
+        role_key = role.lower()
+        if role_key not in ["restreamer", "commentator"]:
+            await interaction.followup.send("Role must be either 'restreamers' or 'commentators'", ephemeral=True)
+            return
+
+        # Add username if it's not already in the list
+        if username not in data[role_key]:
+            data[role_key].append(username)
+
+        # Rebuild the event description
+        if not data["restreamer"] and not data["commentator"]:
+            return "No restreamers or commentators have claimed this event"
+        
+        restreamers_str = ", ".join(data["restreamer"]) or "None"
+        commentators_str = ", ".join(data["commentator"]) or "None"
+        
+        await currentEvent.edit(description=f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
+        await interaction.followup.send("I have added you to the schedule.", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send("You broke the bot somehow. I don't know how but you did. Please message Vert whatever you did, so that she can fix it!")
+        print(e)
+
 
 
 @client.tree.command(name="confirm_match", description="Use this command in your designated match channel to add or update a match in the schedule!")
 @discord.app_commands.describe(date='Enter the date in MM/DD/YYYY Format', time="Enter the time in either 12 hour format or 24 hour format", timezone="Enter your local timezone.")
 async def confirm_match(interaction: discord.Interaction, date: str, time: str, timezone: str):
-    await interaction.response.defer(ephemeral=True, thinking=True)
-    
-    if not is_valid_channel(interaction.channel.name):
+    try: 
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        
+        if not is_valid_channel(interaction.channel.name):
+            await interaction.followup.send(
+                "Error: This command can only be used in private match scheduling channels.",
+                ephemeral=True,
+            )
+            return
+
+        player1, player2 = get_players_from_channel(interaction.channel.name)
+
+        if not player1 or not player2:
+            await interaction.followup.send(
+                "Error: Could not find player information. Check the channel name.",
+                ephemeral=True,
+            )
+            return
+
+        user_running_command = interaction.user
+
+        # Check if user is authorized to run the command
+        if not can_run_command(user_running_command, player1, player2):
+            await interaction.followup.send(
+                "You do not have permission to run this command.", ephemeral=True
+            )
+            return
+
+        event_name = generate_event_name(player1, player2)
+
+        # Parse and validate datetime
+        dt_obj = parse_datetime(date, time)
+
+        if not dt_obj:
+            await interaction.followup.send(
+                "Invalid date or time format. Use 'MM/DD/YYYY' and 'H:MM AM/PM' or 'HH:MM'.",
+                ephemeral=True,
+            )
+            return
+
+        # Get timezone and convert to UTC
+        timezone_obj = get_timezone(timezone)
+
+        if not timezone_obj:
+            await interaction.followup.send(
+                f"Unknown or unsupported timezone abbreviation: {timezone}",
+                ephemeral=True,
+            )
+            return
+
+        localized_dt = timezone_obj.localize(dt_obj)
+        utc_dt = localized_dt.astimezone(pytz.UTC)
+        end_dt = utc_dt + timedelta(hours=1)
+        current_dt = datetime.now(pytz.UTC) # Fuck you Matthew. jk ily
+
+        #Checks IF YOU ARE CREATING FOR A TIME IN THE PAST
+        if (utc_dt <= current_dt):
+            await interaction.followup.send(
+                "You cannot create a time in the past ",
+                ephemeral=True
+            )
+            return
+
+        # Create or update event
+        if event_exists(interaction.guild.scheduled_events, event_name):
+            await update_event(interaction.guild, event_name, utc_dt, end_dt)
+            await interaction.followup.send(
+                f"Success! I have updated the schedule for you!.",
+                ephemeral=True,
+            )
+        else:
+            await create_event(interaction.guild, event_name, utc_dt, end_dt)
+            await interaction.followup.send(
+                "Success! I have created an event for you!", ephemeral=True
+            )
+    except Exception as e:
+        print(f"{interaction.user}: {interaction.message}")
+        print(e)
         await interaction.followup.send(
-            "Error: This command can only be used in private match scheduling channels.",
-            ephemeral=True,
+            "You broke the bot somehow. I don't know how, but you did. Please message Vert with what you did, and don't break the bot again.", ephemeral=True
         )
-        return
 
-    player1, player2 = get_players_from_channel(interaction.channel.name)
-
-    if not player1 or not player2:
-        await interaction.followup.send(
-            "Error: Could not find player information. Check the channel name.",
-            ephemeral=True,
-        )
-        return
-
-    user_running_command = interaction.user
-
-    # Check if user is authorized to run the command
-    if not can_run_command(user_running_command, player1, player2):
-        await interaction.followup.send(
-            "You do not have permission to run this command.", ephemeral=True
-        )
-        return
-
-    event_name = generate_event_name(player1, player2)
-
-    # Parse and validate datetime
-    dt_obj = parse_datetime(date, time)
-
-    if not dt_obj:
-        await interaction.followup.send(
-            "Invalid date or time format. Use 'MM/DD/YYYY' and 'H:MM AM/PM' or 'HH:MM'.",
-            ephemeral=True,
-        )
-        return
-
-    # Get timezone and convert to UTC
-    timezone_obj = get_timezone(timezone)
-
-    if not timezone_obj:
-        await interaction.followup.send(
-            f"Unknown or unsupported timezone abbreviation: {timezone}",
-            ephemeral=True,
-        )
-        return
-
-    localized_dt = timezone_obj.localize(dt_obj)
-    utc_dt = localized_dt.astimezone(pytz.UTC)
-    end_dt = utc_dt + timedelta(hours=1)
-
-    # Create or update event
-    if event_exists(interaction.guild.scheduled_events, event_name):
-        await update_event(interaction.guild, event_name, utc_dt, end_dt)
-        await interaction.followup.send(
-            f"Success! I have updated the schedule for you!.",
-            ephemeral=True,
-        )
-    else:
-        await create_event(interaction.guild, event_name, utc_dt, end_dt)
-        await interaction.followup.send(
-            "Success! I have created an event for you!", ephemeral=True
-        )
 
 #Sync Command
 @client.tree.command(name="sync", description="Sync Command")
@@ -338,7 +411,7 @@ async def sync(interaction: discord.Interaction):
 
     print("Attempting to sync")
     try:
-        synced = await client.tree.sync(guild=client.guild)
+        synced = await client.tree.sync()
         print(f"Synced {len(synced)} commands to the guild")
         await interaction.response.send_message("Success!.", ephemeral=True)
 
