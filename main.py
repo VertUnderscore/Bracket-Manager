@@ -84,6 +84,73 @@ intents.message_content = True
 intents.members = True
 client = BracketManager(intents=intents)
 
+@client.tree.command(name="unclaim", description="Use this command if you are a restreamer or commentator to remove yourself from the schedule")
+async def unclaim(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    try:
+        if not is_valid_channel(interaction.channel.name):
+            await interaction.followup.send(
+                "Error: This command can only be used in private match scheduling channels.",
+                ephemeral=True,
+            )
+            return
+
+        player1, player2 = get_players_from_channel(interaction.channel.name)
+
+        if not player1 or not player2:
+            await interaction.followup.send(
+                "Error: Could not find player information. Check the channel name.",
+                ephemeral=True,
+            )
+            return
+
+        user_running_command = interaction.user
+
+        # Check if user is authorized to run the command REWRITE THIS
+        if not can_run_command(user_running_command, player1, player2):
+            await interaction.followup.send(
+                "You do not have permission to run this command.", ephemeral=True
+            )
+            return
+
+        event_name = generate_event_name(player1, player2)
+        allEvents = await interaction.guild.fetch_scheduled_events()
+        currentEvent = discord.utils.get(allEvents, name=event_name)
+        event_description = currentEvent.description
+        user_id = interaction.user.id
+        username = get_preferred_name(user_id)
+
+        data = parse_event_status(event_description)
+        
+        if data is None:
+            raise ValueError("Invalid event description format")
+
+        #Remove from role_key
+        role_key = ["restreamer", "commentator"]
+        for role in role_key:
+            if username in data[role]:
+                data[role].remove(username)
+
+
+        # Rebuild the event description
+        if not data["restreamer"] and not data["commentator"]:
+            returnString = "No restreamers or commentators have claimed this event"
+            await currentEvent.edit(description=returnString)
+            await my_calendar.updateEventDescription(event_name, returnString)
+            await interaction.followup.send("I have removed you from the schedule.", ephemeral=True)
+            return
+        
+        restreamers_str = ", ".join(data["restreamer"]) or "None"
+        commentators_str = ", ".join(data["commentator"]) or "None"
+        
+        await currentEvent.edit(description=f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
+        await my_calendar.updateEventDescription(event_name, f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
+        await interaction.followup.send("I have removed you from the schedule.", ephemeral=True)
+
+    except Exception as e:
+        await interaction.followup.send("You broke the bot somehow. I don't know how but you did. Please message Vert whatever you did, so that she can fix it!")
+        print(e)
+
 @client.tree.command(name="claim", description="Use this command if you're a restreamer or commentator to add yourself to the schedule")
 @discord.app_commands.describe(role="Enter either 'restreamer' or 'commentator'")
 async def claim(interaction: discord.Interaction, role: str):
