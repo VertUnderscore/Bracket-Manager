@@ -19,22 +19,6 @@ ALL_USERS = getUserInfo() # all user info array
 
 
 #Helper Function for confirm_match
-def get_players_from_channel(channel_name):
-        try:
-            tplayer1, tplayer2 = channel_name.split("-vs-", 1)
-            player1, player2 = None, None
-
-            for user in ALL_USERS:
-                if tplayer1 == user["preferred_username"].lower():
-                    player1 = user
-                elif tplayer2 == user["preferred_username"].lower():
-                    player2 = user
-                if player1 and player2:
-                    break
-
-            return player1, player2
-        except ValueError:
-            return None, None
         
 def get_preferred_name(id):
     try:
