@@ -45,10 +45,8 @@ class DiscordMatch:
         returnString += f", Pronouns: ({self.player1["pronouns"]})\n\n" if (self.player1["pronouns"] != "") else "\n\n" 
         returnString += f"{self.player2["preferred_username"]}'s Info For Restreamers:\nTwitch: https://twitch.tv/{self.player2["twitch_username"]}"
         returnString += f", Pronouns: ({self.player2["pronouns"]})\n\n" if (self.player2["pronouns"] != "") else "\n\n" 
-        returnString += "Use this channel to schedule your match with your opponent! Once a time is selected between you two, then you can use /confirm_match to add it to the calendar!\n"
-        returnString += "If needed, you can always /update_match to change the time!\n"
-        returnString += "Restreamers or commentators can use /claim to add that they will be restreaming or commentating the match!\n"
-
+        returnString += "Use this channel to schedule your match with your opponent! Once a time is selected between you two, then you can use /confirm_match to add it to the calendar! If you need to change the time for whatever reason, simply run the command again!\n"
+        returnString += "Restreamers or commentators can use /claim to add that they will be restreaming or commentating the match, or /unclaim if they need to remove themself.\n"
         return returnString        
     
     def channel_name(self):
