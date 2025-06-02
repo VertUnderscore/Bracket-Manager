@@ -2,7 +2,7 @@ import challonge # type: ignore
 import time
 from config import CHALLONGE_API_KEY, CHALLONGE_USERNAME
 challonge.set_credentials(CHALLONGE_USERNAME, CHALLONGE_API_KEY)
-TOURNAMENT = "wijtbuaq" # Put Tournament Name
+TOURNAMENT = "oops_all_fours" # Put Tournament Name
 
 def getParticipants(): #makes code look nicer when calling outside of this file
     return challonge.tournaments.show(TOURNAMENT + "/participants") 
@@ -10,9 +10,9 @@ def getParticipants(): #makes code look nicer when calling outside of this file
 def getRoundName(round):
     if (round < 0):
         return f"Loser's Round {abs(round)}"
-    elif (round == 3): #change number to the actual last round, this is the finals.
+    elif (round == 6): #change number to the actual last round, this is the finals.
         return "Finals"
-    elif (round == 2): #change to second last round. Semifinals
+    elif (round == 5): #change to second last round. Semifinals
         return "Semifinals"
     else:
         return f"Round {round}"
