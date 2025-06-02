@@ -33,6 +33,8 @@ def getCurrentMatches():
     
     return currentMatches
 
+print(getParticipants())
+
 """
 MIT License
 
