@@ -73,8 +73,7 @@ class BracketManager(commands.Bot):
             if discord.utils.get(self.get_all_channels(), name = channel_name) != None:
                 pass
             else:
-                await self.guild.create_text_channel(channel_name, category=category)
-                currentChannel = discord.utils.get(self.get_all_channels(), name = channel_name)
+                currentChannel = await self.guild.create_text_channel(channel_name, category=category)
                 for id in currentMatch.getDiscordIDs():
                     user = self.guild.get_member(id)
                     #print(id)
@@ -125,6 +124,10 @@ async def unclaim(interaction: discord.Interaction):
         event_description = currentEvent.description
         user_id = interaction.user.id
         username = get_preferred_name(user_id)
+
+        if currentEvent is None:
+            await interaction.followup.send("No event has been made.", ephemeral=True)
+            return
 
         data = parse_event_status(event_description)
         
@@ -199,6 +202,10 @@ async def claim(interaction: discord.Interaction, role: str):
         event_description = currentEvent.description
         user_id = interaction.user.id
         username = get_preferred_name(user_id)
+
+        if currentEvent is None:
+            await interaction.followup.send("No event has been made.", ephemeral=True)
+            return
 
         data = parse_event_status(event_description)
         
