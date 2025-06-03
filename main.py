@@ -123,7 +123,7 @@ async def unclaim(interaction: discord.Interaction):
         currentEvent = discord.utils.get(allEvents, name=event_name)
         event_description = currentEvent.description
         user_id = interaction.user.id
-        username = get_preferred_name(user_id)
+        username = get_preferred_name(user_id) or interaction.user.display_name
 
         if currentEvent is None:
             await interaction.followup.send("No event has been made.", ephemeral=True)
@@ -149,8 +149,9 @@ async def unclaim(interaction: discord.Interaction):
             await interaction.followup.send("I have removed you from the schedule.", ephemeral=True)
             return
         
-        restreamers_str = ", ".join(data["restreamer"]) or "None"
-        commentators_str = ", ".join(data["commentator"]) or "None"
+        restreamers_str = ", ".join([r for r in data["restreamer"] if r is not None]) or "None"
+        commentators_str = ", ".join([c for c in data["commentator"] if c is not None]) or "None"
+
         
         await currentEvent.edit(description=f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
   #      await my_calendar.updateEventDescription(event_name, f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
@@ -225,8 +226,8 @@ async def claim(interaction: discord.Interaction, role: str):
         if not data["restreamer"] and not data["commentator"]:
             return "No restreamers or commentators have claimed this event"
         
-        restreamers_str = ", ".join(data["restreamer"]) or "None"
-        commentators_str = ", ".join(data["commentator"]) or "None"
+        restreamers_str = ", ".join([r for r in data["restreamer"] if r is not None]) or "None"
+        commentators_str = ", ".join([c for c in data["commentator"] if c is not None]) or "None"
         
         await currentEvent.edit(description=f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
     #    await my_calendar.updateEventDescription(event_name, f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")

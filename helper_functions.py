@@ -37,12 +37,17 @@ def get_players_from_channel(channel_name):
     """Extract player names from the channel name."""
     try:
         tplayer1, tplayer2 = channel_name.split("-vs-", 1)
+        # Remove periods only
+        tplayer1 = tplayer1.replace('.', '')
+        tplayer2 = tplayer2.replace('.', '')
+
         player1, player2 = None, None
 
         for user in ALL_USERS:
-            if tplayer1 == user["preferred_username"].lower():
+            username_clean = user["preferred_username"].lower().replace('.', '')
+            if tplayer1 == username_clean:
                 player1 = user
-            elif tplayer2 == user["preferred_username"].lower():
+            elif tplayer2 == username_clean:
                 player2 = user
             if player1 and player2:
                 break
@@ -51,20 +56,21 @@ def get_players_from_channel(channel_name):
     except ValueError:
         return None, None
 
-def can_run_command(user, player1, player2):
-    """Check if the user can run the command (either a player or a Tournament Admin)."""
-    is_tourney_admin = any(role.name == "Tournament Admin" for role in user.roles)
-    return (
-        is_tourney_admin
-        or user.id == player1["discord_id"]
-        or user.id == player2["discord_id"]
-    )
-
 def can_run_command_RC(user):
     is_commentator = any(role.name == "commentator" for role in user.roles)
     is_restreamer = any(role.name == "restreamer" for role in user.roles)
     is_tourney_admin = any(role.name == "Tournament Admin" for role in user.roles)
     return {is_commentator or is_restreamer or is_tourney_admin}
+
+
+def can_run_command(user, player1, player2):
+    """Check if the user can run the command (either a player or a Tournament Admin)."""
+    canRunCommandRC = can_run_command_RC(user)
+    return (
+        canRunCommandRC
+        or user.id == player1["discord_id"]
+        or user.id == player2["discord_id"]
+    )
 
 def generate_event_name(player1, player2):
     """Generate the event name."""
@@ -173,6 +179,3 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
-for user in ALL_USERS:
-    print(user["preferred_username"])
