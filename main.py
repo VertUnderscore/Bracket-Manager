@@ -7,7 +7,7 @@ import challonge_integration
 import match_to_discord
 import pytz
 import re
-#from google_calendar_integration import GoogleCalendar
+from google_calendar_integration import GoogleCalendar
 from config import BOT_TOKEN, GUILD_ID, OWNER_ID
 from typing import Literal, Optional
 from timezone_map import timezone_map
@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from helper_functions import *
 
 current_matches = {} # This will be updated periodically
-#my_calendar = GoogleCalendar()
+my_calendar = GoogleCalendar()
 
 async def listenerForMatches():
     global current_matches
@@ -74,14 +74,28 @@ class BracketManager(commands.Bot):
                 pass
             else:
                 currentChannel = await self.guild.create_text_channel(channel_name, category=category)
-                for id in currentMatch.getDiscordIDs():
+                discord_ids = currentMatch.getDiscordIDs()
+                print(f"Retrieved Discord IDs for channel {channel_name}: {discord_ids}")
+                for id in discord_ids:
                     user = self.guild.get_member(id)
-                    #print(id)
-                    #print(user)
                     if user == None:
-                        print("USER IS NONE FOR SOME REASON")
-                    else:
-                        await currentChannel.set_permissions(user, view_channel=True)
+                        print(f"Failed to find user with ID {id} for channel {channel_name}")
+                        # Try fetching the member directly
+                        try:
+                            user = await self.guild.fetch_member(id)
+                            print(f"Successfully fetched user {user.name} after retry")
+                        except discord.NotFound:
+                            print(f"User with ID {id} not found in guild")
+                        except discord.HTTPException as e:
+                            print(f"HTTP error when fetching user {id}: {e}")
+                    if user:
+                        try:
+                            await currentChannel.set_permissions(user, view_channel=True)
+                            print(f"Successfully set permissions for user {user.name} in channel {channel_name}")
+                        except discord.Forbidden as e:
+                            print(f"Bot lacks permissions to set channel permissions: {e}")
+                        except Exception as e:
+                            print(f"Error setting permissions for user {user.name}: {e}")
                 await currentChannel.send(currentMatch.initialMessage())
 
 intents = discord.Intents.default()
@@ -123,7 +137,11 @@ async def unclaim(interaction: discord.Interaction):
         currentEvent = discord.utils.get(allEvents, name=event_name)
         event_description = currentEvent.description
         user_id = interaction.user.id
-        username = get_preferred_name(user_id) or interaction.user.display_name
+        username = None
+        if (get_preferred_name(user_id)) == None:
+            username = interaction.user.display_name
+        else:
+            username = get_preferred_name(user_id)
 
         if currentEvent is None:
             await interaction.followup.send("No event has been made.", ephemeral=True)
@@ -145,7 +163,7 @@ async def unclaim(interaction: discord.Interaction):
         if not data["restreamer"] and not data["commentator"]:
             returnString = "No restreamers or commentators have claimed this event"
             await currentEvent.edit(description=returnString)
-          #  await my_calendar.updateEventDescription(event_name, returnString)
+            await my_calendar.updateEventDescription(event_name, returnString)
             await interaction.followup.send("I have removed you from the schedule.", ephemeral=True)
             return
         
@@ -154,7 +172,7 @@ async def unclaim(interaction: discord.Interaction):
 
         
         await currentEvent.edit(description=f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
-  #      await my_calendar.updateEventDescription(event_name, f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
+        await my_calendar.updateEventDescription(event_name, f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
         await interaction.followup.send("I have removed you from the schedule.", ephemeral=True)
 
     except Exception as e:
@@ -202,7 +220,10 @@ async def claim(interaction: discord.Interaction, role: str):
         currentEvent = discord.utils.get(allEvents, name=event_name)
         event_description = currentEvent.description
         user_id = interaction.user.id
-        username = get_preferred_name(user_id)
+        if get_preferred_name(user_id) == None:
+            username = interaction.user.display_name
+        else:
+            username = get_preferred_name(user_id)
 
         if currentEvent is None:
             await interaction.followup.send("No event has been made.", ephemeral=True)
@@ -230,7 +251,7 @@ async def claim(interaction: discord.Interaction, role: str):
         commentators_str = ", ".join([c for c in data["commentator"] if c is not None]) or "None"
         
         await currentEvent.edit(description=f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
-    #    await my_calendar.updateEventDescription(event_name, f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
+        await my_calendar.updateEventDescription(event_name, f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
         await interaction.followup.send("I have added you to the schedule.", ephemeral=True)
     except Exception as e:
         await interaction.followup.send("You broke the bot somehow. I don't know how but you did. Please message Vert whatever you did, so that she can fix it!")
@@ -307,14 +328,14 @@ async def confirm_match(interaction: discord.Interaction, date: str, time: str, 
         # Create or update event
         if event_exists(interaction.guild.scheduled_events, event_name):
             await update_event(interaction.guild, event_name, utc_dt, end_dt)
-          #  await my_calendar.updateEventTime(event_name, utc_dt, end_dt)
+            await my_calendar.updateEventTime(event_name, utc_dt, end_dt)
             await interaction.followup.send(
                 f"Success! I have updated the schedule for you!.",
                 ephemeral=True,
             )
         else:
             await create_event(interaction.guild, event_name, utc_dt, end_dt)
-          #  await my_calendar.createEvent(player1, player2, utc_dt, end_dt)
+            await my_calendar.createEvent(player1, player2, utc_dt, end_dt)
             await interaction.followup.send(
                 "Success! I have created an event for you!", ephemeral=True
             )
