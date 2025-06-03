@@ -1,63 +1,78 @@
-timezone_map = { # Thanks ChatGPT!!! I was not about to type this out all by myself.
+timezone_map = {
     # North America (including DST handling)
-    "EST": "America/New_York",  # Eastern Standard Time (UTC-5)
-    "EDT": "America/New_York",  # Eastern Daylight Time (UTC-4)
-    "ET": "America/New_York",   # Eastern Time, auto-switches based on DST
-    "CST": "America/Chicago",   # Central Standard Time (UTC-6)
-    "CDT": "America/Chicago",   # Central Daylight Time (UTC-5)
-    "CT": "America/Chicago",    # Central Time, auto-switches based on DST
-    "MST": "America/Denver",    # Mountain Standard Time (UTC-7)
-    "MDT": "America/Denver",    # Mountain Daylight Time (UTC-6)
-    "MT": "America/Denver",     # Mountain Time, auto-switches based on DST
-    "PST": "America/Los_Angeles",  # Pacific Standard Time (UTC-8)
-    "PDT": "America/Los_Angeles",  # Pacific Daylight Time (UTC-7)
-    "PT": "America/Los_Angeles",   # Pacific Time, auto-switches based on DST
-    "AST": "America/Puerto_Rico",  # Atlantic Standard Time (UTC-4)
-    "NST": "America/St_Johns",     # Newfoundland Standard Time (UTC-3:30)
+    "EST": "America/New_York",
+    "EDT": "America/New_York",
+    "ET": "America/New_York",
+    "CST": "America/Chicago",
+    "CDT": "America/Chicago",
+    "CT": "America/Chicago",
+    "MST": "America/Denver",
+    "MDT": "America/Denver",
+    "MT": "America/Denver",
+    "PST": "America/Los_Angeles",
+    "PDT": "America/Los_Angeles",
+    "PT": "America/Los_Angeles",
+    "AST": "America/Puerto_Rico",
+    "NST": "America/St_Johns",
+
+    # South America
+    "BST": "America/Sao_Paulo",              # Brazilian Standard Time (UTC-3)
+    "ART": "America/Argentina/Buenos_Aires", # Argentina Time (UTC-3)
+    "BRT": "America/Sao_Paulo",              # Brasília Time (UTC-3)
+    "AMT": "America/Manaus",                 # Amazon Time (UTC-4)
+    "GFT": "America/Cayenne",                # French Guiana Time (UTC-3)
+    "PYT": "America/Asuncion",               # Paraguay Time (UTC-4)
+    "PET": "America/Lima",                   # Peru Time (UTC-5)
+    "ECT": "America/Guayaquil",              # Ecuador Time (UTC-5)
+    "BOT": "America/La_Paz",                 # Bolivia Time (UTC-4)
+    "CLT": "America/Santiago",               # Chile Standard Time (UTC-4)
+    "CHOT": "America/Santiago",              # Chile Summer Time alias (UTC-3 during DST)
+    "URT": "America/Montevideo",             # Uruguay Time (UTC-3)
+    "VET": "America/Caracas",                # Venezuela Time (UTC-4)
 
     # Europe
-    "GMT": "Etc/GMT",            # Greenwich Mean Time (UTC+0)
-    "BST": "Europe/London",       # British Summer Time (UTC+1)
-    "CET": "Europe/Paris",        # Central European Time (UTC+1)
-    "CEST": "Europe/Paris",       # Central European Summer Time (UTC+2)
-    "EET": "Europe/Athens",       # Eastern European Time (UTC+2)
-    "EEST": "Europe/Athens",      # Eastern European Summer Time (UTC+3)
-    "WET": "Europe/Lisbon",       # Western European Time (UTC+0)
-    "WEST": "Europe/Lisbon",      # Western European Summer Time (UTC+1)
-    "MSK": "Europe/Moscow",       # Moscow Standard Time (UTC+3)
+    "UKST": "Europe/London",                 # UK Summer Time (British Summer Time, UTC+1)
+    "GMT": "Etc/GMT",
+    "CET": "Europe/Paris",
+    "CEST": "Europe/Paris",
+    "EET": "Europe/Athens",
+    "EEST": "Europe/Athens",
+    "WET": "Europe/Lisbon",
+    "WEST": "Europe/Lisbon",
+    "MSK": "Europe/Moscow",
 
     # Asia
-    "IST": "Asia/Kolkata",        # Indian Standard Time (UTC+5:30)
-    "PKT": "Asia/Karachi",        # Pakistan Standard Time (UTC+5)
-    "ICT": "Asia/Bangkok",        # Indochina Time (UTC+7)
-    "WIB": "Asia/Jakarta",        # Western Indonesia Time (UTC+7)
-    "WIT": "Asia/Jayapura",       # Eastern Indonesia Time (UTC+9)
-    "JST": "Asia/Tokyo",          # Japan Standard Time (UTC+9)
-    "KST": "Asia/Seoul",          # Korea Standard Time (UTC+9)
-    "CST": "Asia/Shanghai",       # China Standard Time (UTC+8)
-    "HKT": "Asia/Hong_Kong",      # Hong Kong Time (UTC+8)
-    "SGT": "Asia/Singapore",      # Singapore Time (UTC+8)
+    "IST": "Asia/Kolkata",
+    "PKT": "Asia/Karachi",
+    "ICT": "Asia/Bangkok",
+    "WIB": "Asia/Jakarta",
+    "WIT": "Asia/Jayapura",
+    "JST": "Asia/Tokyo",
+    "KST": "Asia/Seoul",
+    "CST": "Asia/Shanghai",
+    "HKT": "Asia/Hong_Kong",
+    "SGT": "Asia/Singapore",
 
     # Australia & Oceania
-    "AWST": "Australia/Perth",    # Australian Western Standard Time (UTC+8)
-    "ACST": "Australia/Darwin",   # Australian Central Standard Time (UTC+9:30)
-    "AEST": "Australia/Sydney",   # Australian Eastern Standard Time (UTC+10)
-    "AEDT": "Australia/Sydney",   # Australian Eastern Daylight Time (UTC+11)
-    "NZST": "Pacific/Auckland",   # New Zealand Standard Time (UTC+12)
-    "NZDT": "Pacific/Auckland",   # New Zealand Daylight Time (UTC+13)
-    "FJT": "Pacific/Fiji",        # Fiji Time (UTC+12)
-    "HST": "Pacific/Honolulu",    # Hawaii Standard Time (UTC-10)
+    "AWST": "Australia/Perth",
+    "ACST": "Australia/Darwin",
+    "AEST": "Australia/Sydney",
+    "AEDT": "Australia/Sydney",
+    "NZST": "Pacific/Auckland",
+    "NZDT": "Pacific/Auckland",
+    "FJT": "Pacific/Fiji",
+    "HST": "Pacific/Honolulu",
 
     # Africa
-    "CAT": "Africa/Harare",       # Central Africa Time (UTC+2)
-    "EAT": "Africa/Nairobi",      # East Africa Time (UTC+3)
-    "SAST": "Africa/Johannesburg",  # South Africa Standard Time (UTC+2)
-    "WAT": "Africa/Lagos",        # West Africa Time (UTC+1)
+    "CAT": "Africa/Harare",
+    "EAT": "Africa/Nairobi",
+    "SAST": "Africa/Johannesburg",
+    "WAT": "Africa/Lagos",
 
     # Middle East
-    "IRST": "Asia/Tehran",        # Iran Standard Time (UTC+3:30)
-    "GST": "Asia/Dubai",          # Gulf Standard Time (UTC+4)
-    "AST": "Asia/Riyadh",         # Arabian Standard Time (UTC+3)
+    "IRST": "Asia/Tehran",
+    "GST": "Asia/Dubai",
+    "AST": "Asia/Riyadh",
 
     # UTC and Offsets
     "UTC": "UTC",

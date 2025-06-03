@@ -92,17 +92,19 @@ def parse_datetime(date_str, time_str):
     return None
 
 def get_timezone(timezone):
-    """Get the timezone object from abbreviation or UTC offset."""
+    """Get the timezone object from abbreviation or UTC/GMT offset."""
+
+    # Check if timezone is directly in the map
     if timezone in timezone_map:
         return pytz.timezone(timezone_map[timezone])
 
-    # Check for UTC offset pattern (e.g., UTC+5, UTC-3)
-    utc_offset_match = re.match(r"UTC([+-]\d{1,2})(?::(\d{1,2}))?", timezone)
-
-    if utc_offset_match:
-        hours_offset = int(utc_offset_match.group(1))
-        minutes_offset = int(utc_offset_match.group(2)) if utc_offset_match.group(2) else 0
-        total_offset_minutes = hours_offset * 60 + minutes_offset
+    # Match offset patterns like UTC+5, UTC-03:30, GMT+2, GMT-7:15
+    offset_match = re.match(r"^(UTC|GMT)([+-]\d{1,2})(?::(\d{1,2}))?$", timezone)
+    
+    if offset_match:
+        hours_offset = int(offset_match.group(2))
+        minutes_offset = int(offset_match.group(3)) if offset_match.group(3) else 0
+        total_offset_minutes = hours_offset * 60 + (minutes_offset if hours_offset >= 0 else -minutes_offset)
         return pytz.FixedOffset(total_offset_minutes)
 
     return None
