@@ -76,9 +76,17 @@ def generate_event_name(player1, player2):
     """Generate the event name."""
     return f"{player1['preferred_username']} ({player1['seed']}) vs {player2['preferred_username']} ({player2['seed']})"
 
-def event_exists(scheduled_events, event_name):
-    """Check if an event with the given name already exists."""
-    return any(event.name == event_name for event in scheduled_events)
+def event_exists(scheduled_events, event_name, google_calendar=None):
+    """Check if an event with the given name already exists in either Discord or Google Calendar."""
+    # Check Discord events
+    discord_exists = any(event.name == event_name for event in scheduled_events)
+    
+    # Check Google Calendar events if provided
+    if google_calendar is not None:
+        google_event = google_calendar.getEventByName(event_name)
+        return discord_exists or google_event is not None
+    
+    return discord_exists
 
 def parse_datetime(date_str, time_str):
     """Parse date and time string in both 12-hour and 24-hour formats."""

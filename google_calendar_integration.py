@@ -123,6 +123,15 @@ class GoogleCalendar:
         self.service.events().update(calendarId=CALENDAR_ID, eventId=event["id"], body=event).execute()
         print("Updated Event Description")
 
+    async def deleteEvent(self, event_name):
+        """Delete an event from Google Calendar by its name."""
+        event = self.getEventByName(event_name)
+        if event:
+            self.service.events().delete(calendarId=CALENDAR_ID, eventId=event["id"]).execute()
+            print(f"Deleted event: {event_name}")
+        else:
+            print(f"Event not found: {event_name}")
+
 """
 MIT License
 

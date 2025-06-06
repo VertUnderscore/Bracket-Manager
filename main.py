@@ -126,6 +126,7 @@ async def unclaim(interaction: discord.Interaction):
         user_running_command = interaction.user
 
         # Check if user is authorized to run the command REWRITE THIS
+        # As of 6/6 this command now works.
         if not can_run_command(user_running_command, player1, player2):
             await interaction.followup.send(
                 "You do not have permission to run this command.", ephemeral=True
@@ -258,6 +259,73 @@ async def claim(interaction: discord.Interaction, role: str):
         print(e)
 
 
+@client.tree.command(name="unconfirm_match", description="Use this command to remove a match from the schedule")
+async def unconfirm_match(interaction: discord.Interaction):
+    try:
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        if not is_valid_channel(interaction.channel.name):
+            await interaction.followup.send(
+                "Error: This command can only be used in private match scheduling channels.",
+                ephemeral=True,
+            )
+            return
+
+        player1, player2 = get_players_from_channel(interaction.channel.name)
+        
+        if not player1 or not player2:
+            await interaction.followup.send(
+                "Error: Could not find player information. Check the channel name.",
+                ephemeral=True,
+            )
+            return
+
+        user_running_command = interaction.user
+        
+        # Check if user is authorized to run the command
+        if not can_run_command(user_running_command, player1, player2):
+            await interaction.followup.send(
+                "You do not have permission to run this command.", ephemeral=True
+            )
+            return
+
+        event_name = generate_event_name(player1, player2)
+
+        # Check both Discord and Google Calendar for existing events
+        discord_events = await interaction.guild.fetch_scheduled_events()
+        event_status = event_exists(discord_events, event_name, my_calendar)
+        
+        if not event_status:
+            await interaction.followup.send(
+                "Error: This event does not exist in either Discord or Google Calendar.",
+                ephemeral=True,
+            )
+            return
+
+        discord_event = discord.utils.get(discord_events, name=event_name)
+        google_event = my_calendar.getEventByName(event_name)
+
+        # If both exist, delete both
+        if discord_event and google_event:
+            await discord_event.delete()
+            await my_calendar.deleteEvent(event_name)
+        # If only one exists, delete the one that exists
+        elif discord_event and not google_event:
+            await discord_event.delete()
+        elif not discord_event and google_event:
+            await my_calendar.deleteEvent(event_name)
+
+        await interaction.followup.send(
+            "I have removed this match from the schedule.",
+            ephemeral=True,
+        )
+    except Exception as e:
+        print(f"Error in unconfirm_match: {e}")
+        await interaction.followup.send(
+            "An error occurred while trying to remove the match from the schedule. Please try again or contact an administrator.",
+            ephemeral=True,
+        )
+
 
 @client.tree.command(name="confirm_match", description="Use this command in your designated match channel to add or update a match in the schedule!")
 @discord.app_commands.describe(date='Enter the date in MM/DD/YYYY Format', time="Enter the time in either 12 hour format or 24 hour format", timezone="Enter your local timezone.")
@@ -325,15 +393,39 @@ async def confirm_match(interaction: discord.Interaction, date: str, time: str, 
             )
             return
 
-        # Create or update event
-        if event_exists(interaction.guild.scheduled_events, event_name):
+        # Check both Discord and Google Calendar for existing events
+        discord_events = await interaction.guild.fetch_scheduled_events()
+        event_status = event_exists(discord_events, event_name, my_calendar)
+        discord_event = discord.utils.get(discord_events, name=event_name)
+        google_event = my_calendar.getEventByName(event_name)
+
+        # Handle various cases
+        if discord_event and google_event:
+            # Both exist - update both
             await update_event(interaction.guild, event_name, utc_dt, end_dt)
             await my_calendar.updateEventTime(event_name, utc_dt, end_dt)
             await interaction.followup.send(
-                f"Success! I have updated the schedule for you!.",
+                f"Success! I have updated the schedule for you!",
                 ephemeral=True,
             )
+        elif discord_event and not google_event:
+            # Only Discord event exists - create Google Calendar event
+            await update_event(interaction.guild, event_name, utc_dt, end_dt)
+            await my_calendar.createEvent(player1, player2, utc_dt, end_dt)
+            await interaction.followup.send(
+                f"Success! I have updated the schedule and synced with Google Calendar!",
+                ephemeral=True,
+            )
+        elif not discord_event and google_event:
+            # Only Google Calendar event exists - create Discord event and update Google Calendar
+            await create_event(interaction.guild, event_name, utc_dt, end_dt)
+            await my_calendar.updateEventTime(event_name, utc_dt, end_dt)
+            await interaction.followup.send(
+                "Success! I have recreated the Discord event and updated Google Calendar!",
+                ephemeral=True
+            )
         else:
+            # Neither exists - create both
             await create_event(interaction.guild, event_name, utc_dt, end_dt)
             await my_calendar.createEvent(player1, player2, utc_dt, end_dt)
             await interaction.followup.send(
