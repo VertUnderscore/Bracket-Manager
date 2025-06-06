@@ -155,10 +155,11 @@ async def unclaim(interaction: discord.Interaction):
 
         #Remove from role_key
         role_key = ["restreamer", "commentator"]
+        removed = False
         for role in role_key:
-            if username in data[role]:
-                data[role].remove(username)
-
+            data[role] = [entry for entry in data[role] if entry["name"] != username]
+            if len(data[role]) < len(data[role]):
+                removed = True
 
         # Rebuild the event description
         if not data["restreamer"] and not data["commentator"]:
@@ -168,12 +169,17 @@ async def unclaim(interaction: discord.Interaction):
             await interaction.followup.send("I have removed you from the schedule.", ephemeral=True)
             return
         
-        restreamers_str = ", ".join([r for r in data["restreamer"] if r is not None]) or "None"
-        commentators_str = ", ".join([c for c in data["commentator"] if c is not None]) or "None"
-
+        def format_names_with_community(entries):
+            if not entries:
+                return "None"
+            return ", ".join(f"{entry['name']} [{entry['community']}]" for entry in entries)
         
-        await currentEvent.edit(description=f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
-        await my_calendar.updateEventDescription(event_name, f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
+        restreamers_str = format_names_with_community(data["restreamer"])
+        commentators_str = format_names_with_community(data["commentator"])
+        
+        new_description = f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}"
+        await currentEvent.edit(description=new_description)
+        await my_calendar.updateEventDescription(event_name, new_description)
         await interaction.followup.send("I have removed you from the schedule.", ephemeral=True)
 
     except Exception as e:
@@ -181,10 +187,22 @@ async def unclaim(interaction: discord.Interaction):
         print(e)
 
 @client.tree.command(name="claim", description="Use this command if you're a restreamer or commentator to add yourself to the schedule")
-@discord.app_commands.describe(role="Enter either 'restreamer' or 'commentator'")
-async def claim(interaction: discord.Interaction, role: str):
+@discord.app_commands.describe(
+    role="Enter either 'restreamer' or 'commentator'",
+    community="Enter your community (EN, JP, or BR)"
+)
+async def claim(interaction: discord.Interaction, role: str, community: str):
     await interaction.response.defer(ephemeral=True, thinking=True)
     try:
+        # Validate community
+        community = community.upper()
+        if community not in ["EN", "JP", "BR"]:
+            await interaction.followup.send(
+                "Error: Community must be either 'EN', 'JP', or 'BR'.",
+                ephemeral=True,
+            )
+            return
+
         if not can_run_command_RC(interaction.user):
             await interaction.followup.send(
                 "Error: You do not have permission to run this command.",
@@ -237,22 +255,29 @@ async def claim(interaction: discord.Interaction, role: str):
 
         role_key = role.lower()
         if role_key not in ["restreamer", "commentator"]:
-            await interaction.followup.send("Role must be either 'restreamers' or 'commentators'", ephemeral=True)
+            await interaction.followup.send("Role must be either 'restreamer' or 'commentator'", ephemeral=True)
             return
 
-        # Add username if it's not already in the list
-        if username not in data[role_key]:
-            data[role_key].append(username)
+        # Add username with community if it's not already in the list
+        user_entry = {"name": username, "community": community}
+        if not any(entry["name"] == username for entry in data[role_key]):
+            data[role_key].append(user_entry)
 
         # Rebuild the event description
         if not data["restreamer"] and not data["commentator"]:
             return "No restreamers or commentators have claimed this event"
         
-        restreamers_str = ", ".join([r for r in data["restreamer"] if r is not None]) or "None"
-        commentators_str = ", ".join([c for c in data["commentator"] if c is not None]) or "None"
+        def format_names_with_community(entries):
+            if not entries:
+                return "None"
+            return ", ".join(f"{entry['name']} [{entry['community']}]" for entry in entries)
         
-        await currentEvent.edit(description=f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
-        await my_calendar.updateEventDescription(event_name, f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}")
+        restreamers_str = format_names_with_community(data["restreamer"])
+        commentators_str = format_names_with_community(data["commentator"])
+        
+        new_description = f"Restreamers: {restreamers_str}\nCommentators: {commentators_str}"
+        await currentEvent.edit(description=new_description)
+        await my_calendar.updateEventDescription(event_name, new_description)
         await interaction.followup.send("I have added you to the schedule.", ephemeral=True)
     except Exception as e:
         await interaction.followup.send("You broke the bot somehow. I don't know how but you did. Please message Vert whatever you did, so that she can fix it!")

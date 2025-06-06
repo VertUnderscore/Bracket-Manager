@@ -132,8 +132,8 @@ async def create_event(guild, event_name, start_time, end_time, description="No 
 def parse_event_status(event_description):
     no_claim_pattern = r"No restreamers or commentators have claimed this event"
     claim_pattern = (
-        r"Restreamers:\s*(?P<restreamer>[\w\s,]+)\s*"
-        r"Commentators:\s*(?P<commentator>[\w\s,]+)"
+        r"Restreamers:\s*(?P<restreamer>(?:[\w\s()]+\s*\[[\w\s]+\](?:,\s*)?)*)\s*"
+        r"Commentators:\s*(?P<commentator>(?:[\w\s()]+\s*\[[\w\s]+\](?:,\s*)?)*)"
     )
 
     # Check for no claims
@@ -143,8 +143,19 @@ def parse_event_status(event_description):
     # Check for claimed restreamers/commentators
     claim_match = re.search(claim_pattern, event_description)
     if claim_match:
-        restreamers = [name.strip() for name in claim_match.group("restreamer").split(",") if name.strip() and name.strip().lower() != "none"]
-        commentators = [name.strip() for name in claim_match.group("commentator").split(",") if name.strip() and name.strip().lower() != "none"]
+        def parse_names_with_community(names_str):
+            if not names_str.strip() or names_str.strip().lower() == "none":
+                return []
+            names = []
+            for name_comm in names_str.strip().split(","):
+                if "[" in name_comm and "]" in name_comm:
+                    name = name_comm.split("[")[0].strip()
+                    community = name_comm.split("[")[1].split("]")[0].strip()
+                    names.append({"name": name, "community": community})
+            return names
+
+        restreamers = parse_names_with_community(claim_match.group("restreamer"))
+        commentators = parse_names_with_community(claim_match.group("commentator"))
         return {"restreamer": restreamers, "commentator": commentators}
 
     # Return None if neither pattern matches
